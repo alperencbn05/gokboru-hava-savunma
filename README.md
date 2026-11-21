@@ -108,6 +108,14 @@ bağımsız şekilde seri bağlanmalı.
 - [ ] `config.NO_FIRE_ZONE_X_FRACTION`: saha/hakem ölçümlerine göre
       ayarlanmalı.
 
+## Parça parça test (yeni makinede / Jetson'da)
+
+`main.py`'yi tam haliyle çalıştırmadan önce şu sırayla doğrulayın:
+
+1. `python tools/test_camera.py` — sadece kamera açılıyor mu, FPS ne?
+2. `python tools/test_serial.py` — sadece Arduino bağlantısı, pan servo salınımı, bir atımlık ateş.
+3. İkisi de çalışıyorsa `python main.py` ile tam sistemi deneyin.
+
 ## Çalıştırma
 
 ```bash
