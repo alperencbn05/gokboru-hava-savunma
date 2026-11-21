@@ -7,19 +7,22 @@ sayi/esik degeri hardcode etmek yerine buraya ekleyip oradan import edin.
 
 import platform
 
-import cv2
-
-# --- Kamera ---
-CAMERA_INDEX = 0
+# --- Kamera (kamera.py / kaynak_olustur() uzerinden acilir) ---
+# "orbbec" : gercek Orbbec Gemini 335L (pyorbbecsdk2 kurulu olmali, Jetson)
+# "webcam" : normal USB webcam (OpenCV UVC) - Windows gelistirme icin varsayilan
+# "video"  : kayitli bir video dosyasi (CAMERA_VIDEO_PATH)
+# "demo"   : hicbir donanim gerektirmeyen sahte goruntu (yazilim testi icin)
+CAMERA_SOURCE = "webcam"
+CAMERA_DEPTH = False  # True sadece "orbbec" kaynaginda gercek derinlik verir
+CAMERA_INDEX = 0      # "webcam" icin cihaz indeksi
+CAMERA_VIDEO_PATH = ""  # "video" icin dosya yolu
+CAMERA_DEMO_FPS = 15
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
-
-# Gelistirme Windows'ta basladi (CAP_DSHOW Windows'a ozel bir backend).
-# Jetson/Linux'ta bu backend yok; orada V4L2 kullanilir. USB webcam icin
-# asagidaki yeterli olmali. CSI (seritli) kamera kullanacaksaniz
-# CAMERA_INDEX yerine bir GStreamer pipeline string'i gerekir - o zaman
-# haber verin, main.py'yi ona gore guncelleriz.
-CAMERA_BACKEND = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_V4L2
+# True ise her karede yatayda cevrilir (laptop webcam'inin ayna etkisini
+# duzeltmek icindi). Turrete monte gercek kamerada bu dogru olmayabilir -
+# saha testinde kontrol edip gerekirse False yapin.
+FLIP_HORIZONTAL = True
 
 # --- Model ---
 # Su an yolov8n.pt COCO ile egitilmis genel bir model; "F16", "Helikopter",
@@ -62,7 +65,11 @@ RED_HSV_RANGE_1 = ((0, 90, 60), (10, 255, 255))
 RED_HSV_RANGE_2 = ((170, 90, 60), (180, 255, 255))
 BLUE_HSV_RANGE = ((95, 80, 50), (135, 255, 255))
 
-# --- Mesafe Tahmini (pinhole model) ---
+# --- Mesafe Tahmini (pinhole model - YEDEK yontem) ---
+# CAMERA_SOURCE="orbbec" + CAMERA_DEPTH=True ise vision_detector.py once
+# GERCEK derinlik verisini kullanir (kamera.py uzerinden). Bu pinhole
+# tahmini sadece derinlik yoksa (webcam/video/demo, ya da Orbbec'te o
+# noktada gecerli olcum yoksa) devreye girer.
 # distance_m = (gercek_yukseklik_m * FOCAL_PX) / bbox_yukseklik_px
 # FOCAL_PX bilinen bir mesafede (orn. 5m) gercek hedefle olculerek bulunur:
 #   FOCAL_PX = (bbox_yukseklik_px * bilinen_mesafe_m) / gercek_yukseklik_m

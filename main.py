@@ -26,6 +26,7 @@ from target_lock import TargetLock
 from serial_link import SerialLink
 from engagement import can_engage
 from ui_panel import UIPanel
+from kamera import kaynak_olustur
 
 
 def draw_crosshair(frame, cx, cy):
@@ -49,16 +50,25 @@ def draw_target(frame, target, is_primary):
     cv2.putText(frame, label, (x1, max(y1 - 10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1)
 
 
+def _camera_settings():
+    """kamera.kaynak_olustur() icin config.py'den ayar sozlugu kurar."""
+    return {
+        "source": config.CAMERA_SOURCE,       # "orbbec" | "webcam" | "video" | "demo"
+        "depth": config.CAMERA_DEPTH,
+        "demo_fps": config.CAMERA_DEMO_FPS,
+        "video_path": config.CAMERA_VIDEO_PATH,
+        "webcam_index": config.CAMERA_INDEX,
+    }
+
+
 def main():
     detector = Detector(config.MODEL_PATH)
     lock = TargetLock()
     link = SerialLink()
     ui = UIPanel(height=config.FRAME_HEIGHT)
 
-    cap = cv2.VideoCapture(config.CAMERA_INDEX, config.CAMERA_BACKEND)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    source = kaynak_olustur(_camera_settings())
+    source.start()
 
     cv2.namedWindow(config.WINDOW_NAME)
 
@@ -87,21 +97,32 @@ def main():
     cv2.setMouseCallback(config.WINDOW_NAME, on_mouse)
 
     try:
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                print("[HATA] Kameradan goruntu alinamiyor. CAMERA_INDEX degerini 1 veya 2 yapmayi deneyin.")
+        while True:
+            kare = source.read()
+            if kare is None:
+                print("[HATA] Kameradan goruntu alinamiyor (kaynak: "
+                      f"{config.CAMERA_SOURCE}). Baglantiyi/CAMERA_INDEX'i kontrol edin.")
                 break
 
-            frame = cv2.flip(frame, 1)  # ayna etkisini duzelt
+            frame = kare.color_bgr
+            depth_mm = kare.depth_mm
+
+            if config.FLIP_HORIZONTAL:
+                frame = cv2.flip(frame, 1)  # ayna etkisini duzelt
+                if depth_mm is not None:
+                    depth_mm = cv2.flip(depth_mm, 1)  # Color ile hizali kalsin
+
             if frame.shape[1] != config.FRAME_WIDTH or frame.shape[0] != config.FRAME_HEIGHT:
                 frame = cv2.resize(frame, (config.FRAME_WIDTH, config.FRAME_HEIGHT))
+                if depth_mm is not None:
+                    depth_mm = cv2.resize(depth_mm, (config.FRAME_WIDTH, config.FRAME_HEIGHT),
+                                           interpolation=cv2.INTER_NEAREST)
 
             height, width = frame.shape[:2]
             frame_cx, frame_cy = width // 2, height // 2
             draw_crosshair(frame, frame_cx, frame_cy)
 
-            targets = detector.detect(frame, frame_cx, frame_cy)
+            targets = detector.detect(frame, frame_cx, frame_cy, depth_mm)
             primary = lock.update(targets)
             estop = link.poll_estop()
 
@@ -158,7 +179,7 @@ def main():
                 state["fire_once"] = True
     finally:
         link.close()
-        cap.release()
+        source.close()
         cv2.destroyAllWindows()
         cv2.waitKey(1)
 

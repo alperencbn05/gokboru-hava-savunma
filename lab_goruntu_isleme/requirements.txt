@@ -1,0 +1,4 @@
+numpy>=1.23
+opencv-python>=4.6
+# Orbbec gercek kamera icin bu paket ayri olarak gereklidir:
+# pyorbbecsdk2 (Jetson ARM64/SDK surum uyumlulugunu kontrol edin)

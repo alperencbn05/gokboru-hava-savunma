@@ -2,3 +2,7 @@ ultralytics==8.4.184
 opencv-python==4.11.0.86
 pyserial==3.5
 numpy==2.2.4
+
+# Orbbec Gemini 335L gercek derinlik icin (CAMERA_SOURCE="orbbec") ayrica gerekir:
+# pyorbbecsdk2  (PyPI paket adi; import adi "pyorbbecsdk" - Jetson/aarch64'te
+#                kurulum talimatlarini https://github.com/orbbec/pyorbbecsdk adresinden izleyin)

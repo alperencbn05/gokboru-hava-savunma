@@ -3,7 +3,11 @@ Tespit + siniflandirma katmani.
 
 YOLO/ByteTrack ile kutu ve ID uretir, ustune iki ozelligi ekler:
   - faction  : "DUSMAN" | "DOST" | "BILINMIYOR"  (hedef maketi rengine gore)
-  - range_m  : tahmini mesafe (metre) veya None (kalibre edilmemisse)
+  - range_m  : mesafe (metre) veya None (hic bir yontem sonuc vermediyse)
+
+Mesafe once GERCEK derinlik verisinden (Orbbec, kamera.py uzerinden) okunur;
+depth_mm verilmediyse veya o noktada gecerli olcum yoksa config.FOCAL_PX ile
+kaba bir pinhole tahminine duser.
 """
 
 from dataclasses import dataclass
@@ -34,7 +38,7 @@ class Detector:
     def __init__(self, model_path: str = config.MODEL_PATH):
         self.model = YOLO(model_path)
 
-    def detect(self, frame, frame_cx: int, frame_cy: int) -> list[Target]:
+    def detect(self, frame, frame_cx: int, frame_cy: int, depth_mm: Optional[np.ndarray] = None) -> list[Target]:
         results = self.model.track(frame, persist=True, tracker="bytetrack.yaml", verbose=False)
         targets: list[Target] = []
 
@@ -56,7 +60,9 @@ class Detector:
 
             target_type = config.CLASS_NAME_MAP.get(int(cls_id))
             faction = classify_faction(frame, bbox)
-            range_m = estimate_distance_m(y2 - y1, target_type)
+            range_m = real_distance_from_depth(depth_mm, target_cx, target_cy)
+            if range_m is None:
+                range_m = estimate_distance_m(y2 - y1, target_type)
 
             targets.append(Target(
                 id=int(track_id),
@@ -111,3 +117,26 @@ def estimate_distance_m(bbox_height_px: float, target_type: Optional[str]) -> Op
         return None
     real_h = config.REAL_HEIGHT_M.get(target_type or "DEFAULT", config.REAL_HEIGHT_M["DEFAULT"])
     return (real_h * config.FOCAL_PX) / bbox_height_px
+
+
+def real_distance_from_depth(depth_mm: Optional[np.ndarray], x: int, y: int, window: int = 3) -> Optional[float]:
+    """kamera.py'nin Orbbec derinlik karesinden (varsa) gercek mesafeyi okur.
+
+    NOT: Color ve Depth sensorleri kamerada hizalanmamis (kamera.py'nin
+    kendi uyarisi) - bu yuzden Color karesindeki (x,y) piksel konumunu
+    dogrudan Depth karesinde aramak kucuk bir kaymaya sebep olabilir.
+    Gercek donanimda dogrulanana kadar bunu bilerek kullanin.
+    """
+    if depth_mm is None:
+        return None
+    h, w = depth_mm.shape[:2]
+    if not (0 <= x < w and 0 <= y < h):
+        return None
+
+    x0, x1 = max(0, x - window), min(w, x + window + 1)
+    y0, y1 = max(0, y - window), min(h, y + window + 1)
+    patch = depth_mm[y0:y1, x0:x1]
+    valid = patch[patch > 0]
+    if valid.size == 0:
+        return None
+    return float(np.median(valid)) / 1000.0

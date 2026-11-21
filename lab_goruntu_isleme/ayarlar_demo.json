@@ -1,0 +1,15 @@
+{
+  "source": "demo",
+  "depth": true,
+  "gui": false,
+  "duration_seconds": 3,
+  "output_dir": "ciktilar_demo",
+  "filter": "clahe",
+  "save_video": false,
+  "video_output_fps": 15,
+  "snapshot_interval_seconds": 1,
+  "preview_depth_max_mm": 5000,
+  "demo_fps": 15,
+  "video_path": "",
+  "webcam_index": 0
+}
