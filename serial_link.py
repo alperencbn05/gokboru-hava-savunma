@@ -4,6 +4,11 @@ Arduino ile seri haberlesme.
 Protokol (bkz. README.md "Seri Protokol" bolumu):
   PC -> Arduino : "X{dx}Y{dy}F{fire}\n"   dx,dy: piksel hatasi, fire: 0/1
   Arduino -> PC : "ESTOP:0\n" / "ESTOP:1\n"  (acil durdur butonu durumu)
+
+Kullanim: hareket icin her dongude send(dx, dy) cagrilir (throttle'li).
+Ates icin once request_fire() ile istek kuyruga alinir, bir sonraki
+send() cagrisinda F1 olarak kesin iletilir (throttle penceresine
+denk gelse bile kaybolmaz).
 """
 
 import time
@@ -19,6 +24,7 @@ class SerialLink:
         self.interval = interval
         self._last_send = 0.0
         self._estop_state = False
+        self._pending_fire = False
         self.port = port
 
         try:
@@ -33,18 +39,38 @@ class SerialLink:
     def connected(self) -> bool:
         return self.ser is not None
 
-    def send(self, dx: int, dy: int, fire: int) -> None:
+    def request_fire(self) -> None:
+        """Ates istegini kuyruga alir.
+
+        Onemli: eskiden fire bayragi dogrudan send()'e parametre olarak
+        geciyordu ve send() interval dolmadiysa komutu sessizce atlayip
+        ates istegini kaybediyordu (SPACE/ATES tam throttle penceresine
+        denk gelirse hic tetiklenmiyordu). Simdi istek burada saklanir ve
+        bir sonraki send() cagrisinda -throttle'i gerekirse delerek- kesin
+        iletilir.
+        """
+        self._pending_fire = True
+
+    def cancel_pending_fire(self) -> None:
+        self._pending_fire = False
+
+    def send(self, dx: int, dy: int) -> None:
         if self.ser is None:
             return
+
         now = time.time()
-        if now - self._last_send < self.interval:
-            return
+        due = (now - self._last_send) >= self.interval
+        if not due and not self._pending_fire:
+            return  # henuz zamani gelmedi ve bekleyen ates istegi yok
+
+        fire = 1 if self._pending_fire else 0
         command = f"X{dx}Y{dy}F{fire}\n"
         try:
             self.ser.write(command.encode("utf-8"))
         except Exception as e:
             print(f"[HATA] Seri yazma basarisiz: {e}")
         self._last_send = now
+        self._pending_fire = False
 
     def poll_estop(self) -> bool:
         """Arduino'dan gelen ESTOP satirlarini okur ve son bilinen durumu dondurur.

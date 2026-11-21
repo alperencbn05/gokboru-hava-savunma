@@ -106,15 +106,22 @@ def main():
             estop = link.poll_estop()
 
             can_fire, reason = can_engage(primary, state["stage"], estop, width)
-            fire_cmd = 1 if (state["fire_once"] and can_fire) else 0
-            state["fire_once"] = False  # tek atimlik istek tuketildi
+
+            if state["fire_once"]:
+                if can_fire:
+                    link.request_fire()
+                state["fire_once"] = False  # tek atimlik istek tuketildi
 
             dx = dy = 0
             if primary is not None:
                 dx = 0 if abs(primary.dx) < config.DEADZONE else primary.dx
                 dy = 0 if abs(primary.dy) < config.DEADZONE else primary.dy
 
-            link.send(0, 0, 0) if estop else link.send(dx, dy, fire_cmd)
+            if estop:
+                link.cancel_pending_fire()
+                link.send(0, 0)
+            else:
+                link.send(dx, dy)
 
             for t in targets:
                 draw_target(frame, t, primary is not None and t.id == primary.id)

@@ -27,9 +27,11 @@ modül **net bir girdi/çıktı sözleşmesine** sahip:
 - Görüntü işleme ekibi (sen) → `vision_detector.py` + `target_lock.py` içinde
   çalışır, dışarıya `Target` nesneleri (id, kutu, dost/düşman, tip, mesafe)
   üretir.
-- Gömülü/elektronik ekip → Arduino tarafında `serial_link.py`'nin beklediği
-  protokolü (aşağıda) uygulayan bir firmware yazar. Python tarafına
-  dokunmasına gerek yok.
+- Gömülü/elektronik ekip → `firmware/gokboru_turret/gokboru_turret.ino`
+  başlangıç noktası olarak verildi (pan/tilt servo + tetik/lazer rölesi +
+  acil durdur okuma). Bu, gerçek donanımla **hiç test edilmedi** —
+  pin numaraları, `GAIN`, `FIRE_PULSE_MS`, açı sınırları saha testinde
+  kalibre edilmeli. Python tarafına dokunmaya gerek yok.
 - Mekanik/güvenlik ekibi → acil durdur butonunun gerçekten motoru/ateşi
   kesmesinden sorumlu (bu yazılımla değil donanımla sağlanmalı, bkz. Şartname
   4.2); yazılım tarafında sadece `config.NO_FIRE_ZONE_X_FRACTION` ve
@@ -64,6 +66,31 @@ Arduino -> PC : "ESTOP:0\n" veya "ESTOP:1\n"
 Firmware tarafını yazan arkadaş bu formatı değiştirmek isterse önce burada
 (README) güncellesin, sonra `serial_link.py`'deki `send`/`poll_estop`
 fonksiyonlarını güncelleyelim — tek doğru kaynak burası olsun.
+
+Not: `fire=1` isteği `SerialLink.request_fire()` ile kuyruğa alınır ve bir
+sonraki `send()` çağrısında -throttle penceresine denk gelse bile- kesin
+iletilir. Eski sürümde `fire` doğrudan `send()`'e parametre olarak
+geçiyordu ve throttle penceresine denk gelen bir ateş isteği sessizce
+kaybolabiliyordu; bu düzeltildi.
+
+## Firmware (Arduino)
+
+`firmware/gokboru_turret/gokboru_turret.ino`: pan/tilt servoyu P
+kontrolcüyle sürer, `fire=1` geldiğinde tetik/lazer rölesini kısa bir
+pulse için tetikler, acil durdur butonunu okuyup `ESTOP:` satırlarını
+gönderir. **Gerçek donanımla hiç denenmedi** — Arduino IDE kurulu
+olmadığı için bu ortamda derlenemedi de; flaşlamadan önce bir arkadaşın
+Arduino IDE'de açıp derlemesi/yüklemesi gerekiyor.
+
+Varsayılan pinler (kendi devrenize göre dosyanın başında değiştirin):
+- `PIN_SERVO_PAN = 9`, `PIN_SERVO_TILT = 10`
+- `PIN_FIRE = 7` (röle/MOSFET → airsoft tetiği veya lazer)
+- `PIN_ESTOP = 2` (buton, `INPUT_PULLUP`, basılı = LOW)
+
+**Güvenlik:** Bu firmware'deki acil durdur kontrolü ek bir yazılım
+katmanıdır. Şartname 4.2'ye göre gerçek kesme donanımda olmalı — buton,
+motor sürücü ve ateş rölesinin besleme hattında mikrodenetleyiciden
+bağımsız şekilde seri bağlanmalı.
 
 ## Kalibrasyon / TODO (yarışmadan önce yapılması gerekenler)
 
