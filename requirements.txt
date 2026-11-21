@@ -1,0 +1,4 @@
+ultralytics==8.4.184
+opencv-python==4.11.0.86
+pyserial==3.5
+numpy==2.2.4

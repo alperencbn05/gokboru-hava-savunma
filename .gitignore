@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.log
+
+# Ultralytics agirliklari otomatik indirilir (ilk calistirmada), repoda tutmuyoruz.
+*.pt
+
+# Egitim/kalibrasyon ciktilari, saha kayitlari gibi buyuk dosyalar
+*.mp4
+*.avi
+runs/
