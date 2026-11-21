@@ -15,7 +15,8 @@ donanımı ayrı ekip üyeleri tarafından geliştirilecek ve aşağıdaki proto
 | `target_lock.py` | Tıklayarak kilitleme, ID kaybında kurtarma, otomatik hedef seçimi |
 | `engagement.py` | "Ateş serbest mi?" kuralları (aşama, dost/düşman, menzil, yasak bölge, acil durdur) |
 | `serial_link.py` | Arduino ile seri haberleşme + acil durdur durumunu okuma |
-| `main.py` | Kamera döngüsü, çizimler, klavye kontrolleri — her modülü birleştiren yer |
+| `ui_panel.py` | Video görüntüsünün yanındaki tıklanabilir kontrol paneli (buton + durum yazıları) |
+| `main.py` | Kamera döngüsü, çizimler, panel/klavye kontrolleri — her modülü birleştiren yer |
 
 ## Neden bu şekilde ayrıldı (ekip entegrasyonu)
 
@@ -34,11 +35,13 @@ modül **net bir girdi/çıktı sözleşmesine** sahip:
   4.2); yazılım tarafında sadece `config.NO_FIRE_ZONE_X_FRACTION` ve
   `ENGAGEMENT_RANGES_M` değerlerini saha ölçümlerine göre güncellemeleri
   yeterli.
-- Arayüz (UI) ekibi → `main.py`'deki klavye kontrollerinin (1/2/3 aşama seçimi,
-  M mod değişimi, SPACE ateş) yerine kendi arayüzlerinden çağıracakları
-  fonksiyonları koyacaklar (`lock.release()`, stage/mode değişkenleri, vb.).
-  Gerçek bir arayüz geldiğinde `main.py`'nin klavye kısmı değişecek, diğer
-  modüllere dokunulmayacak.
+- Arayüz (UI) ekibi → şu an `ui_panel.py` içinde video görüntüsünün yanına
+  gömülü basit bir panel var (buton + durum yazıları, aynı OpenCV
+  penceresinde). Ayrı bir UI (joystick, harici ekran, web paneli vb.) 
+  geliştirilecekse `main.py`'deki `on_mouse`/klavye kısmı yerine o UI'nin
+  çağıracağı aynı fonksiyonlar kullanılacak (`lock.release()`,
+  `state["stage"]`, `state["mode"]`, `state["fire_once"]`) — diğer modüllere
+  dokunulmayacak.
 
 **Pratik kural:** Herkes kendi dosyasında/modülünde çalışıp GitHub'da ayrı
 branch açsın (örn. `feature/firmware-protokol`, `feature/mesafe-kalibrasyon`,
@@ -89,6 +92,9 @@ Arduino bağlı değilse veya COM portu farklıysa `serial_link.py` otomatik
 "SİMÜLASYON modu" ile devam eder (motor komutları gönderilmez, görüntü
 işleme ve klavye kontrolleri yine test edilebilir).
 
-Klavye kısayolları: `1`/`2`/`3` aşama seçimi, `M` manuel/otonom geçiş,
-`SPACE` tek atımlık ateş isteği, `Q` çıkış. Mouse: sol tık kilitle, sağ tık
-kilidi bırak.
+Pencere açılınca sağda bir kontrol paneli görünür: **ASAMA 1/2/3**, **MOD
+DEĞİŞTİR**, **KİLİDİ BIRAK**, **ATEŞ** butonları + anlık durum (kilit,
+dost/düşman, tip, mesafe, ateş izni/sebebi, acil durdur). Video alanında
+sol tık hedefe kilitler, sağ tık kilidi bırakır. Aynı işlevler klavyeden de
+çalışır: `1`/`2`/`3` aşama seçimi, `M` manuel/otonom geçiş, `SPACE` tek
+atımlık ateş isteği, `Q` çıkış.
