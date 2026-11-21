@@ -55,7 +55,7 @@ def main():
     link = SerialLink()
     ui = UIPanel(height=config.FRAME_HEIGHT)
 
-    cap = cv2.VideoCapture(config.CAMERA_INDEX, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(config.CAMERA_INDEX, config.CAMERA_BACKEND)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)

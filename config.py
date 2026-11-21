@@ -5,10 +5,21 @@ Tum kalibrasyon ve donanim sabitleri burada toplanir. Baska bir modulde
 sayi/esik degeri hardcode etmek yerine buraya ekleyip oradan import edin.
 """
 
+import platform
+
+import cv2
+
 # --- Kamera ---
 CAMERA_INDEX = 0
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
+
+# Gelistirme Windows'ta basladi (CAP_DSHOW Windows'a ozel bir backend).
+# Jetson/Linux'ta bu backend yok; orada V4L2 kullanilir. USB webcam icin
+# asagidaki yeterli olmali. CSI (seritli) kamera kullanacaksaniz
+# CAMERA_INDEX yerine bir GStreamer pipeline string'i gerekir - o zaman
+# haber verin, main.py'yi ona gore guncelleriz.
+CAMERA_BACKEND = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_V4L2
 
 # --- Model ---
 # Su an yolov8n.pt COCO ile egitilmis genel bir model; "F16", "Helikopter",
@@ -22,7 +33,10 @@ MODEL_PATH = "yolov8n.pt"
 CLASS_NAME_MAP: dict[int, str] = {}
 
 # --- Seri Port (Arduino) ---
-SERIAL_PORT = "COM4"
+# Windows'ta "COM4" gibi, Linux/Jetson'da "/dev/ttyACM0" veya "/dev/ttyUSB0"
+# gibi olur. Jetson'da Arduino'yu takip cikarip `ls /dev/tty*` ile hangi
+# portun degistigine bakarak bulun, sonra burayi guncelleyin.
+SERIAL_PORT = "COM4" if platform.system() == "Windows" else "/dev/ttyACM0"
 BAUD_RATE = 115200
 SERIAL_INTERVAL = 0.030  # saniye, komut gonderme araligi
 
