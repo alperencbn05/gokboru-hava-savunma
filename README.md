@@ -108,13 +108,47 @@ bağımsız şekilde seri bağlanmalı.
 - [ ] `config.NO_FIRE_ZONE_X_FRACTION`: saha/hakem ölçümlerine göre
       ayarlanmalı.
 
+## Jetson Orin Nano kurulumu
+
+`jetson/setup_jetson.sh` — apt paketleri, performans modu, dialout izni,
+ultralytics/pyserial kurulumunu otomatikler. **PyTorch adımı otomatik
+değil** (JetPack sürümüne özel wheel elle indirilip kurulmalı, script
+bunu ortada durup hatırlatır). Gerçek bir Jetson'da test edilmedi —
+adım adım çalıştırıp her çıktıyı kontrol edin.
+
+```bash
+chmod +x jetson/setup_jetson.sh
+./jetson/setup_jetson.sh
+```
+
+## Orbbec derinlik kamerası (opsiyonel, deneysel)
+
+`depth_source.py`: Orbbec Gemini 335L'den gerçek metre cinsinden mesafe
+okumak için `pyorbbecsdk` sarmalayıcısı. **main.py'ye bağlı değil** —
+`config.FOCAL_PX` ile yapılan kaba pinhole tahminini değiştirmiyor,
+saha testinde doğrulanırsa `vision_detector.py`'ye bağlanabilir.
+Resmi pyorbbecsdk dokümantasyonundan yazıldı, gerçek donanımla hiç
+denenmedi; `tools/test_depth.py` ile önce tek başına doğrulayın:
+
+```bash
+python tools/test_depth.py
+```
+
+**Bilinen risk:** Kamera fiziksel olarak takılı/açık değilken
+`Pipeline()` oluşturma adımı temiz bir Python hatası vermeden süreci
+sert biçimde sonlandırabiliyor (try/except ile yakalanamıyor) — bunu
+bu makinede pyorbbecsdk kuruluyken (kamerasız) denerken gördüm. Hata
+mesajı görmeden program aniden kapanırsa önce kameranın takılı/açık
+olduğunu kontrol edin.
+
 ## Parça parça test (yeni makinede / Jetson'da)
 
 `main.py`'yi tam haliyle çalıştırmadan önce şu sırayla doğrulayın:
 
 1. `python tools/test_camera.py` — sadece kamera açılıyor mu, FPS ne?
 2. `python tools/test_serial.py` — sadece Arduino bağlantısı, pan servo salınımı, bir atımlık ateş.
-3. İkisi de çalışıyorsa `python main.py` ile tam sistemi deneyin.
+3. (Opsiyonel) `python tools/test_depth.py` — Orbbec derinlik okuması gerçekçi mi?
+4. İkisi/üçü de çalışıyorsa `python main.py` ile tam sistemi deneyin.
 
 ## Çalıştırma
 

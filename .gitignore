@@ -11,3 +11,6 @@ venv/
 *.mp4
 *.avi
 runs/
+
+# pyorbbecsdk calisirken otomatik olusturdugu log klasoru
+Log/
